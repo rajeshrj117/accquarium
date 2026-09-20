@@ -1,4 +1,4 @@
-name: Build APK
+﻿name: Build APK
 
 on:
   push:
@@ -10,28 +10,30 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup JDK 17
-        uses: actions/setup-java@v4
+      - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
 
-      # No "Setup Android SDK" step needed: ubuntu-latest already ships with the
-      # Android SDK (platform 34, build-tools, licenses accepted).
-
-      - name: Setup Gradle 8.6
-        uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: 8.6
 
-      - name: Build debug APK
-        run: gradle assembleDebug --stacktrace
+      - name: Configure Gradle memory
+        run: |
+          mkdir -p ~/.gradle
+          cat >> ~/.gradle/gradle.properties << 'EOF'
+          org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8
+          kotlin.daemon.jvmargs=-Xmx2g
+          android.useAndroidX=true
+          EOF
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
+      - name: Build debug APK
+        run: gradle assembleDebug --stacktrace --no-daemon
+
+      - uses: actions/upload-artifact@v4
         with:
           name: app-debug
           path: app/build/outputs/apk/debug/app-debug.apk
